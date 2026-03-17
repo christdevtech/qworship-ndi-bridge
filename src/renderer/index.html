@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>QWorship NDI Bridge</title>
+    <!-- TODO: Replace with your favicon — drop your .ico/.png into src/assets/ and update this link -->
+    <!-- <link rel="icon" href="../assets/icon.ico" type="image/x-icon" /> -->
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "ndi-dark":         "#121214",
+              "ndi-card":         "#1e1e22",
+              "ndi-accent":       "#7c3aed",
+              "ndi-accent-hover": "#6d28d9",
+              "ndi-success":      "#10b981",
+              "ndi-danger":       "#ef4444",
+              "ndi-border":       "#333338",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #121214; }
+      ::-webkit-scrollbar-thumb { background: #333338; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #55555b; }
+      .preview-aspect { aspect-ratio: 16 / 9; }
+      /* Drag region for the frameless custom titlebar */
+      #titlebar { -webkit-app-region: drag; }
+      #titlebar button { -webkit-app-region: no-drag; }
+    </style>
+  </head>
+
+  <body class="bg-ndi-dark text-gray-100 font-sans h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- ================================================================= -->
+    <!-- TITLEBAR                                                            -->
+    <!-- ================================================================= -->
+    <header id="titlebar"
+      class="h-12 border-b border-ndi-border flex items-center justify-between px-4 bg-ndi-dark shrink-0">
+
+      <div class="flex items-center gap-3">
+        <!-- App Icon -->
+        <img src="../assets/icon.png" class="w-6 h-6 rounded object-cover" alt="icon"
+          onerror="this.style.display='none'" />
+        <h1 class="text-sm font-semibold tracking-wide uppercase text-gray-200">
+          QWorship NDI Bridge
+          <span class="text-ndi-accent ml-2 text-[10px] bg-ndi-accent/10 px-1.5 py-0.5 rounded border border-ndi-accent/20">
+            DUAL-LINK
+          </span>
+        </h1>
+      </div>
+
+      <!-- Window Controls -->
+      <div class="flex items-center space-x-1">
+        <button id="btn-minimize" title="Minimize"
+          class="hover:bg-ndi-border p-1.5 rounded transition-colors">
+          <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round"
+            stroke-width="2" viewBox="0 0 24 24" width="14">
+            <line x1="5" x2="19" y1="12" y2="12"/>
+          </svg>
+        </button>
+        <button id="btn-maximize" title="Maximize"
+          class="hover:bg-ndi-border p-1.5 rounded transition-colors">
+          <svg fill="none" height="13" stroke="currentColor" stroke-linecap="round"
+            stroke-width="2" viewBox="0 0 24 24" width="13">
+            <rect height="18" rx="2" ry="2" width="18" x="3" y="3"/>
+          </svg>
+        </button>
+        <button id="btn-close" title="Close"
+          class="hover:bg-ndi-danger p-1.5 rounded transition-colors">
+          <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round"
+            stroke-width="2" viewBox="0 0 24 24" width="14">
+            <line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ================================================================= -->
+    <!-- MAIN LAYOUT                                                         -->
+    <!-- ================================================================= -->
+    <main class="flex-1 flex overflow-hidden">
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- LEFT SIDEBAR — Configuration                                      -->
+      <!-- ---------------------------------------------------------------- -->
+      <aside class="w-72 border-r border-ndi-border bg-ndi-card flex flex-col p-5 overflow-y-auto shrink-0">
+        <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Configuration</h2>
+
+        <div class="space-y-8">
+
+          <!-- Source 1 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-4 bg-ndi-accent rounded-full"></span>
+              <h3 class="text-xs font-bold text-gray-300 uppercase">Source 1</h3>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-medium text-gray-400 uppercase tracking-tighter" for="source-url-1">URL</label>
+              <input id="source-url-1" type="url" placeholder="https://..."
+                class="bg-ndi-dark border border-ndi-border rounded-md px-3 py-1.5 text-xs
+                       focus:border-ndi-accent focus:ring-1 focus:ring-ndi-accent outline-none
+                       transition-all placeholder-gray-600 select-text" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-medium text-gray-400 uppercase tracking-tighter" for="ndi-name-1">NDI Name</label>
+              <input id="ndi-name-1" type="text" placeholder="e.g. MAIN_OVERLAY"
+                class="bg-ndi-dark border border-ndi-border rounded-md px-3 py-1.5 text-xs
+                       focus:border-ndi-accent focus:ring-1 focus:ring-ndi-accent outline-none
+                       transition-all placeholder-gray-600 select-text" />
+            </div>
+          </div>
+
+          <hr class="border-ndi-border" />
+
+          <!-- Source 2 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+              <h3 class="text-xs font-bold text-gray-300 uppercase">Source 2</h3>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-medium text-gray-400 uppercase tracking-tighter" for="source-url-2">URL</label>
+              <input id="source-url-2" type="url" placeholder="https://..."
+                class="bg-ndi-dark border border-ndi-border rounded-md px-3 py-1.5 text-xs
+                       focus:border-ndi-accent focus:ring-1 focus:ring-ndi-accent outline-none
+                       transition-all placeholder-gray-600 select-text" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] font-medium text-gray-400 uppercase tracking-tighter" for="ndi-name-2">NDI Name</label>
+              <input id="ndi-name-2" type="text" placeholder="e.g. CHAT_WIDGET"
+                class="bg-ndi-dark border border-ndi-border rounded-md px-3 py-1.5 text-xs
+                       focus:border-ndi-accent focus:ring-1 focus:ring-ndi-accent outline-none
+                       transition-all placeholder-gray-600 select-text" />
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="flex flex-col gap-3 pt-2">
+            <button id="toggle-stream"
+              class="w-full bg-ndi-accent hover:bg-ndi-accent-hover text-white text-xs font-bold
+                     py-3 rounded-md transition-all flex items-center justify-center gap-2
+                     shadow-lg shadow-ndi-accent/20">
+              <div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+              Start All Streams
+            </button>
+            <button id="refresh-sources"
+              class="w-full bg-transparent border border-ndi-border hover:bg-ndi-border
+                     text-gray-300 text-[10px] uppercase font-bold py-2 rounded-md transition-all">
+              Refresh All Sources
+            </button>
+          </div>
+        </div>
+
+        <!-- Sidebar Footer Stats -->
+        <div class="mt-auto pt-8">
+          <div class="flex items-center justify-between text-[10px] text-gray-500 border-t border-ndi-border pt-4">
+            <span id="stat-cpu">CPU: —</span>
+            <span id="stat-ram">RAM: —</span>
+            <span>v1.0.0</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- MAIN CONTENT — Status + Preview                                   -->
+      <!-- ---------------------------------------------------------------- -->
+      <section class="flex-1 flex flex-col bg-ndi-dark p-5 overflow-hidden min-w-0">
+
+        <!-- Dual Status Bar -->
+        <div class="grid grid-cols-2 gap-3 mb-4 shrink-0">
+          <!-- Src 1 Status -->
+          <div class="bg-ndi-card/40 p-3 rounded-lg border border-ndi-border flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">Src 1 Status</span>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="w-2 h-2 rounded-full bg-ndi-danger transition-colors" id="status-dot-1"></span>
+                  <span class="text-xs font-semibold text-gray-300" id="status-text-1">Offline</span>
+                </div>
+              </div>
+              <div class="w-px h-6 bg-ndi-border"></div>
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">Res</span>
+                <span class="text-xs font-semibold text-gray-300">1920×1080</span>
+              </div>
+              <div class="w-px h-6 bg-ndi-border"></div>
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">FPS</span>
+                <span class="text-xs font-semibold text-gray-300" id="stat-fps-1">—</span>
+              </div>
+            </div>
+            <div class="text-[9px] text-gray-500 font-mono" id="stat-bitrate-1">0.0 Mb/s</div>
+          </div>
+          <!-- Src 2 Status -->
+          <div class="bg-ndi-card/40 p-3 rounded-lg border border-ndi-border flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">Src 2 Status</span>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="w-2 h-2 rounded-full bg-ndi-danger transition-colors" id="status-dot-2"></span>
+                  <span class="text-xs font-semibold text-gray-300" id="status-text-2">Offline</span>
+                </div>
+              </div>
+              <div class="w-px h-6 bg-ndi-border"></div>
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">Res</span>
+                <span class="text-xs font-semibold text-gray-300">1920×1080</span>
+              </div>
+              <div class="w-px h-6 bg-ndi-border"></div>
+              <div class="flex flex-col">
+                <span class="text-[9px] text-gray-500 uppercase font-bold">FPS</span>
+                <span class="text-xs font-semibold text-gray-300" id="stat-fps-2">—</span>
+              </div>
+            </div>
+            <div class="text-[9px] text-gray-500 font-mono" id="stat-bitrate-2">0.0 Mb/s</div>
+          </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="flex items-center justify-between mb-2 shrink-0">
+            <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Multi-Source Preview</h3>
+            <div class="flex gap-2">
+              <button id="layout-split"
+                class="text-[10px] bg-ndi-border px-2 py-0.5 rounded text-gray-300 hover:text-white transition-colors">
+                Split Vertical
+              </button>
+              <button id="layout-grid"
+                class="text-[10px] bg-ndi-border px-2 py-0.5 rounded text-gray-300 hover:text-white transition-colors">
+                Layout Grid
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Grid -->
+          <div id="preview-grid" class="grid grid-cols-2 gap-4 flex-1 items-start min-h-0">
+
+            <!-- Preview 1 -->
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[10px] font-bold text-gray-500 uppercase" id="preview-label-1">Output 1: —</span>
+                <div class="w-2 h-2 rounded-full bg-ndi-accent/50" id="preview-dot-1"></div>
+              </div>
+              <div class="relative w-full preview-aspect bg-black border border-ndi-border rounded-lg overflow-hidden">
+                <!-- Live thumbnail -->
+                <img id="preview-img-1" src="" alt=""
+                  class="absolute inset-0 w-full h-full object-cover hidden" />
+                <!-- Idle state -->
+                <div id="preview-idle-1"
+                  class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <svg class="w-8 h-8 text-ndi-border" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+                  </svg>
+                  <span class="text-[10px] text-gray-600">No source loaded</span>
+                </div>
+                <!-- Live indicator -->
+                <div class="absolute bottom-3 left-3 hidden" id="live-indicator-1">
+                  <span class="bg-ndi-danger text-[8px] font-bold px-1.5 py-0.5 rounded text-white flex items-center gap-1">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>SRC1 LIVE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview 2 -->
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-[10px] font-bold text-gray-500 uppercase" id="preview-label-2">Output 2: —</span>
+                <div class="w-2 h-2 rounded-full bg-blue-500/50" id="preview-dot-2"></div>
+              </div>
+              <div class="relative w-full preview-aspect bg-black border border-ndi-border rounded-lg overflow-hidden">
+                <!-- Live thumbnail -->
+                <img id="preview-img-2" src="" alt=""
+                  class="absolute inset-0 w-full h-full object-cover hidden" />
+                <div id="preview-idle-2"
+                  class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <svg class="w-8 h-8 text-ndi-border" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+                  </svg>
+                  <span class="text-[10px] text-gray-600">No source loaded</span>
+                </div>
+                <div class="absolute bottom-3 left-3 hidden" id="live-indicator-2">
+                  <span class="bg-ndi-danger text-[8px] font-bold px-1.5 py-0.5 rounded text-white flex items-center gap-1">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>SRC2 LIVE
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /preview-grid -->
+        </div>
+      </section>
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- FOOTER STATUS BAR                                                   -->
+    <!-- ================================================================= -->
+    <footer class="h-9 bg-ndi-dark border-t border-ndi-border flex items-center px-4 justify-between shrink-0">
+      <div class="flex items-center gap-5 text-[10px] text-gray-500 font-medium">
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-ndi-success" id="footer-ndi-dot"></span>
+          <span id="footer-ndi-label">NDI Dual-Core Ready</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg fill="none" height="11" stroke="currentColor" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="11">
+            <rect height="11" rx="2" ry="2" width="18" x="3" y="11"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Secure Bridge
+        </span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex gap-1.5">
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="w-1 h-3 bg-ndi-accent rounded-full" id="footer-bar-1"></div>
+            <span class="text-[6px]">1</span>
+          </div>
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="w-1 h-3 bg-blue-500 rounded-full" id="footer-bar-2"></div>
+            <span class="text-[6px]">2</span>
+          </div>
+        </div>
+        <span class="text-[10px] text-gray-500">Global Buffers: <span id="footer-buffers">—</span></span>
+      </div>
+    </footer>
+
+    <!-- ================================================================= -->
+    <!-- RENDERER SCRIPT                                                     -->
+    <!-- ================================================================= -->
+    <script>
+      // ------------------------------------------------------------------ //
+      // State
+      // ------------------------------------------------------------------ //
+      let isStreaming = false;
+      const api = window.electronAPI;
+
+      // ------------------------------------------------------------------ //
+      // Restore saved sources on load
+      // ------------------------------------------------------------------ //
+      (async () => {
+        const saved = await api.getSavedSources();
+        if (saved) {
+          document.getElementById('source-url-1').value  = saved[0]?.url      ?? '';
+          document.getElementById('ndi-name-1').value    = saved[0]?.ndiName  ?? '';
+          document.getElementById('source-url-2').value  = saved[1]?.url      ?? '';
+          document.getElementById('ndi-name-2').value    = saved[1]?.ndiName  ?? '';
+          updatePreviewLabels(saved[0]?.ndiName, saved[1]?.ndiName);
+        }
+      })();
+
+      // ------------------------------------------------------------------ //
+      // Window chrome
+      // ------------------------------------------------------------------ //
+      document.getElementById('btn-minimize').addEventListener('click', () => api.minimize());
+      document.getElementById('btn-maximize').addEventListener('click', () => api.maximize());
+      document.getElementById('btn-close').addEventListener('click',    () => api.close());
+
+      // ------------------------------------------------------------------ //
+      // Layout toggles
+      // ------------------------------------------------------------------ //
+      document.getElementById('layout-split').addEventListener('click', () => {
+        document.getElementById('preview-grid').className =
+          'flex flex-col gap-4 flex-1 items-start min-h-0 overflow-y-auto';
+      });
+      document.getElementById('layout-grid').addEventListener('click', () => {
+        document.getElementById('preview-grid').className =
+          'grid grid-cols-2 gap-4 flex-1 items-start min-h-0';
+      });
+
+      // ------------------------------------------------------------------ //
+      // Stream toggle
+      // ------------------------------------------------------------------ //
+      const toggleBtn = document.getElementById('toggle-stream');
+
+      toggleBtn.addEventListener('click', async () => {
+        if (!isStreaming) {
+          const sources = getSources();
+          if (!sources[0].url && !sources[1].url) {
+            alert('Please enter at least one URL before starting.');
+            return;
+          }
+          await api.startStream(sources);
+          setStreamingState(true);
+        } else {
+          await api.stopStream();
+          setStreamingState(false);
+        }
+      });
+
+      // ------------------------------------------------------------------ //
+      // Refresh
+      // ------------------------------------------------------------------ //
+      document.getElementById('refresh-sources').addEventListener('click', async () => {
+        await api.refreshSources(getSources());
+      });
+
+      // ------------------------------------------------------------------ //
+      // Helpers
+      // ------------------------------------------------------------------ //
+      function getSources() {
+        return [
+          {
+            url:     document.getElementById('source-url-1').value.trim(),
+            ndiName: document.getElementById('ndi-name-1').value.trim() || 'QWORSHIP_SRC1',
+          },
+          {
+            url:     document.getElementById('source-url-2').value.trim(),
+            ndiName: document.getElementById('ndi-name-2').value.trim() || 'QWORSHIP_SRC2',
+          },
+        ];
+      }
+
+      function updatePreviewLabels(name1, name2) {
+        document.getElementById('preview-label-1').textContent = `Output 1: ${name1 || '—'}`;
+        document.getElementById('preview-label-2').textContent = `Output 2: ${name2 || '—'}`;
+      }
+
+      function setStreamingState(active) {
+        isStreaming = active;
+        const src = getSources();
+        updatePreviewLabels(src[0].ndiName, src[1].ndiName);
+
+        toggleBtn.innerHTML = active
+          ? `<div class="w-2 h-2 rounded-full bg-white animate-pulse"></div> Stop All Streams`
+          : `<div class="w-2 h-2 rounded-full bg-white animate-pulse"></div> Start All Streams`;
+
+        if (active) {
+          toggleBtn.classList.replace('bg-ndi-accent', 'bg-ndi-danger');
+          toggleBtn.classList.replace('hover:bg-ndi-accent-hover', 'hover:bg-red-700');
+          toggleBtn.classList.remove('shadow-ndi-accent/20');
+        } else {
+          toggleBtn.classList.replace('bg-ndi-danger', 'bg-ndi-accent');
+          toggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-ndi-accent-hover');
+          toggleBtn.classList.add('shadow-ndi-accent/20');
+        }
+
+        [1, 2].forEach(i => {
+          const dot   = document.getElementById(`status-dot-${i}`);
+          const text  = document.getElementById(`status-text-${i}`);
+          const live  = document.getElementById(`live-indicator-${i}`);
+          const idle  = document.getElementById(`preview-idle-${i}`);
+
+          const srcActive = active && !!src[i - 1].url;
+          dot.className   = `w-2 h-2 rounded-full transition-colors ${srcActive ? 'bg-ndi-success' : 'bg-ndi-danger'}`;
+          text.textContent = srcActive ? 'Active' : 'Offline';
+          text.className  = `text-xs font-semibold ${srcActive ? 'text-ndi-success' : 'text-gray-300'}`;
+          live.classList.toggle('hidden', !srcActive);
+          idle.classList.toggle('hidden', srcActive);
+        });
+
+        // Footer
+        document.getElementById('footer-ndi-label').textContent = active
+          ? 'NDI Dual-Core Active'
+          : 'NDI Dual-Core Ready';
+      }
+
+      // ------------------------------------------------------------------ //
+      // Live stats from main process
+      // ------------------------------------------------------------------ //
+      api.onStatsUpdate((data) => {
+        document.getElementById('stat-cpu').textContent = `CPU: ${data.cpu}%`;
+        document.getElementById('stat-ram').textContent = `RAM: ${data.ram}MB`;
+
+        data.sources.forEach((s, i) => {
+          const idx = i + 1;
+          document.getElementById(`stat-fps-${idx}`).textContent =
+            s.active ? `${s.fps}` : '—';
+          document.getElementById(`stat-bitrate-${idx}`).textContent =
+            s.active ? `${s.bitrateMbps} Mb/s` : '0.0 Mb/s';
+        });
+
+        // Update live preview thumbnails
+        if (data.previews) {
+          data.previews.forEach((dataUrl, i) => {
+            const idx = i + 1;
+            const img  = document.getElementById(`preview-img-${idx}`);
+            const idle = document.getElementById(`preview-idle-${idx}`);
+            if (dataUrl && img) {
+              img.src = dataUrl;
+              img.classList.remove('hidden');
+              if (idle) idle.classList.add('hidden');
+            } else if (img) {
+              img.classList.add('hidden');
+            }
+          });
+        }
+
+        // Animated footer level bars
+        const opacity1 = data.sources[0].active ? '1' : '0.25';
+        const opacity2 = data.sources[1].active ? '1' : '0.25';
+        document.getElementById('footer-bar-1').style.opacity = opacity1;
+        document.getElementById('footer-bar-2').style.opacity = opacity2;
+
+        // Avg buffer estimate (rough)
+        const avgFps = (data.sources[0].fps + data.sources[1].fps) / 2 || 0;
+        const bufMs  = avgFps > 0 ? (1000 / avgFps).toFixed(1) : '—';
+        document.getElementById('footer-buffers').textContent =
+          bufMs !== '—' ? `${bufMs}ms` : '—';
+      });
+    </script>
+  </body>
+</html>

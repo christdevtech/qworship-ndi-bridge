@@ -1,0 +1,63 @@
+{
+  "name": "qworship-ndi-bridge",
+  "version": "1.0.0",
+  "description": "QWorship NDI Browser Bridge — stream two browser sources as NDI on your local network",
+  "main": "src/main.js",
+  "author": "QWorship",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron .",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-builder install-app-deps",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "dependencies": {
+    "grandiose": "^0.0.4"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.qworship.ndi-bridge",
+    "productName": "QWorship NDI Bridge",
+    "copyright": "Copyright © 2025 QWorship",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "node_modules/grandiose/build/Release",
+        "to": ".",
+        "filter": [
+          "**/*.dll"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "QWorship NDI Bridge"
+    }
+  }
+}
