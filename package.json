@@ -12,9 +12,6 @@
     "build": "electron-builder",
     "dist": "electron-builder --publish=never"
   },
-  "dependencies": {
-    "grandiose": "^0.0.4"
-  },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "electron": "^30.0.0",
@@ -61,5 +58,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "QWorship NDI Bridge"
     }
+  },
+  "dependencies": {
+    "@stagetimerio/grandiose": "^0.1.1"
   }
 }

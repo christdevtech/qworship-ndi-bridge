@@ -13,7 +13,7 @@ let grandiose;
 let grandioseError = null;
 
 try {
-  grandiose = require('grandiose');
+  grandiose = require('@stagetimerio/grandiose');
   console.log('[NdiManager] grandiose module loaded successfully');
 } catch (e) {
   console.error(
@@ -47,14 +47,15 @@ class NdiSender {
     this._init();
   }
 
-  _init() {
+  async _init() {
     if (!grandiose) return;
     try {
-      this._sender = grandiose.send({
+      const senderObj = await grandiose.send({
         name: this._name,
         clockVideo: true,
         clockAudio: false,
       });
+      this._sender = senderObj;
       console.log(`[NdiSender ${this._index}] NDI sender "${this._name}" initialised`);
     } catch (e) {
       console.error(`[NdiSender ${this._index}] Failed to create NDI sender:`, e.message);
@@ -90,12 +91,14 @@ class NdiSender {
         frameRateD: 1001,
         pictureAspectRatio: width / height,
         frameFormatType: grandiose.FORMAT_TYPE_PROGRESSIVE,
-        fourCC: grandiose.FOURCC_BGRA,
-        lineStrideInBytes: width * 4,
+        fourCC: 1095911234, // BGRA constant from index.d.ts
+        lineStrideBytes: width * 4,
         data: bgraBuffer,
+      }).catch(err => {
+        // Suppress individual frame drop errors to avoid console spam
       });
     } catch (e) {
-      console.error(`[NdiSender ${this._index}] sendFrame error:`, e.message);
+      console.error(`[NdiSender ${this._index}] sendFrame sync error:`, e.message);
     }
   }
 
