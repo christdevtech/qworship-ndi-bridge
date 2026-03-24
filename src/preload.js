@@ -23,4 +23,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize:  () => ipcRenderer.send('window-minimize'),
   maximize:  () => ipcRenderer.send('window-maximize'),
   close:     () => ipcRenderer.send('window-close'),
+
+  // Diagnostics and Errors
+  diagnoseNdi: () => ipcRenderer.invoke('diagnose-ndi'),
+  onNdiError: (callback) => {
+    ipcRenderer.on('ndi-error', (_event, error) => callback(error));
+  },
 });

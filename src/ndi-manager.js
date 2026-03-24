@@ -10,14 +10,23 @@
  */
 
 let grandiose;
+let grandioseError = null;
+
 try {
   grandiose = require('grandiose');
+  console.log('[NdiManager] grandiose module loaded successfully');
 } catch (e) {
-  console.warn(
-    '[NdiManager] grandiose native module could not be loaded.\n' +
-    'Make sure the NDI Runtime DLL is available (see ndi-sdk/ folder).\n' +
+  console.error(
+    '[NdiManager] CRITICAL: grandiose native module could not be loaded.\n' +
+    'Make sure the NDI Runtime is installed.\n' +
+    'Download from: https://www.ndi.tv/tools/\n' +
     'Error:', e.message
   );
+  grandioseError = {
+    message: 'NDI Runtime not found',
+    details: e.message,
+    solution: 'Download and install NDI Tools from https://www.ndi.tv/tools/'
+  };
   grandiose = null;
 }
 
@@ -131,3 +140,4 @@ class NdiManager {
 }
 
 module.exports = NdiManager;
+module.exports.getGrandioseError = () => grandioseError;

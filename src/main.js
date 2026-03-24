@@ -104,6 +104,17 @@ function startAllStreams(sources) {
 
   ndiManager = new NdiManager();
 
+  // CHECK FOR GRANDIOSE ERROR
+  const grandioseError = NdiManager.getGrandioseError();
+  if (grandioseError) {
+    console.error('[startAllStreams] Cannot start streams:', grandioseError.message);
+    // Send error to UI
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('ndi-error', grandioseError);
+    }
+    return; // Don't continue if NDI is not available
+  }
+
   sources.forEach((src, i) => {
     if (!src.url || !src.ndiName) return;
 
@@ -243,6 +254,21 @@ ipcMain.on("window-maximize", () => {
 ipcMain.on("window-close", () => {
   stopAllStreams();
   app.quit();
+});
+
+ipcMain.handle("diagnose-ndi", () => {
+  const grandioseLoaded = !NdiManager.getGrandioseError();
+  const sendersCreated = ndiManager ? ndiManager._senders.filter(s => s !== null).length : 0;
+  return {
+    grandioseLoaded,
+    sendersCreated,
+    systemInfo: {
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      electronVersion: process.versions.electron,
+    }
+  };
 });
 
 // ---------------------------------------------------------------------------

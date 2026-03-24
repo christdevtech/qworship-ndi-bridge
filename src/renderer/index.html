@@ -156,6 +156,11 @@
                      text-gray-300 text-[10px] uppercase font-bold py-2 rounded-md transition-all">
               Refresh All Sources
             </button>
+            <button id="diagnose-ndi"
+              class="w-full bg-transparent border border-gray-800 hover:bg-gray-800
+                     text-gray-400 text-[10px] uppercase font-bold py-2 rounded-md transition-all mt-1">
+              Run Diagnostics
+            </button>
           </div>
         </div>
 
@@ -173,6 +178,23 @@
       <!-- MAIN CONTENT — Status + Preview                                   -->
       <!-- ---------------------------------------------------------------- -->
       <section class="flex-1 flex flex-col bg-ndi-dark p-5 overflow-hidden min-w-0">
+
+        <!-- Error Banner -->
+        <div id="error-banner" class="hidden bg-ndi-danger/20 border border-ndi-danger rounded-lg p-4 mb-4 shrink-0 shadow-lg">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-ndi-danger flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-semibold text-ndi-danger" id="error-title">Error</h3>
+              <p class="text-sm text-gray-300 mt-1" id="error-message"></p>
+              <a href="#" id="error-link" class="text-sm text-ndi-accent hover:underline mt-2 inline-block">Learn more</a>
+            </div>
+            <button id="error-close" class="text-gray-400 hover:text-white" title="Dismiss">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
 
         <!-- Dual Status Bar -->
         <div class="grid grid-cols-2 gap-3 mb-4 shrink-0">
@@ -507,6 +529,43 @@
         const bufMs  = avgFps > 0 ? (1000 / avgFps).toFixed(1) : '—';
         document.getElementById('footer-buffers').textContent =
           bufMs !== '—' ? `${bufMs}ms` : '—';
+      });
+
+      // ------------------------------------------------------------------ //
+      // Errors and Diagnostics
+      // ------------------------------------------------------------------ //
+      api.onNdiError((error) => {
+        const banner = document.getElementById('error-banner');
+        document.getElementById('error-title').textContent = error.message;
+        document.getElementById('error-message').textContent = error.details || error.solution;
+        
+        const link = document.getElementById('error-link');
+        link.href = 'javascript:void(0)'; // Prevent default navigation
+        link.textContent = 'Download NDI Tools';
+        link.onclick = (e) => {
+          e.preventDefault();
+          api.openExternal('https://www.ndi.tv/tools/');
+        };
+        
+        banner.classList.remove('hidden');
+        setStreamingState(false);
+      });
+
+      document.getElementById('error-close').addEventListener('click', () => {
+        document.getElementById('error-banner').classList.add('hidden');
+      });
+
+      document.getElementById('diagnose-ndi').addEventListener('click', async () => {
+        const diag = await api.diagnoseNdi();
+        console.log('NDI Diagnostics:', diag);
+        
+        if (!diag.grandioseLoaded) {
+          alert('NDI Runtime not found. Please install NDI Tools from https://www.ndi.tv/tools/');
+        } else if (diag.sendersCreated === 0) {
+          alert('No NDI senders currently active. Start streams to test senders.');
+        } else {
+          alert(`NDI working: ${diag.sendersCreated} senders active`);
+        }
       });
     </script>
   </body>
