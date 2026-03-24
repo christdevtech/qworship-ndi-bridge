@@ -97,17 +97,20 @@ function createHiddenWindow(index, url) {
 // Stream control
 // ---------------------------------------------------------------------------
 function startAllStreams(sources) {
+  console.log('[startAllStreams] Starting streams for sources:', sources);
+
   if (ndiManager) {
     ndiManager.destroy();
     ndiManager = null;
   }
 
   ndiManager = new NdiManager();
+  console.log('[startAllStreams] NdiManager created');
 
   // CHECK FOR GRANDIOSE ERROR
   const grandioseError = NdiManager.getGrandioseError();
   if (grandioseError) {
-    console.error('[startAllStreams] Cannot start streams:', grandioseError.message);
+    console.error('[startAllStreams] Grandiose error:', grandioseError);
     // Send error to UI
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('ndi-error', grandioseError);
@@ -115,16 +118,45 @@ function startAllStreams(sources) {
     return; // Don't continue if NDI is not available
   }
 
-  sources.forEach((src, i) => {
-    if (!src.url || !src.ndiName) return;
+  console.log('[startAllStreams] Grandiose loaded successfully, creating senders');
 
+  sources.forEach((src, i) => {
+    if (!src.url || !src.ndiName) {
+      console.warn(`[startAllStreams] Source ${i} missing URL or NDI name, skipping`);
+      return;
+    }
+
+    console.log(`[startAllStreams] Creating window and sender for source ${i}: ${src.ndiName}`);
+    
     const win = createHiddenWindow(i, src.url);
     const sender = ndiManager.createSender(i, src.ndiName, 1920, 1080);
+    let frameLogged = false;
 
-    win.webContents.setFrameRate(60);
-    win.webContents.on("paint", (_event, _dirty, image) => {
-      const frameData = image.getBitmap(); // BGRA raw buffer
-      sender.sendFrame(frameData, 1920, 1080);
+    // WAIT FOR PAGE TO LOAD BEFORE REGISTERING PAINT LISTENER
+    win.webContents.once('did-finish-load', () => {
+      console.log(`[startAllStreams] Page ${i} loaded, waiting 500ms before registering paint listener`);
+      
+      // Add 500ms delay to ensure rendering engine has produced frames
+      setTimeout(() => {
+        win.webContents.setFrameRate(60);
+        
+        // NOW register paint listener AFTER page loads
+        win.webContents.on("paint", (_event, _dirty, image) => {
+          if (!frameLogged) {
+            console.log(`[paint] First frame received for source ${i}`);
+            frameLogged = true;
+          }
+          const frameData = image.getBitmap(); // BGRA raw buffer
+          sender.sendFrame(frameData, 1920, 1080);
+        });
+        
+        console.log(`[startAllStreams] Paint listener registered for source ${i}`);
+      }, 500);
+    });
+
+    // Handle load failure
+    win.webContents.once('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error(`[startAllStreams] Failed to load URL for source ${i}:`, errorDescription);
     });
   });
 
