@@ -9,6 +9,13 @@
  *   - Or on the system PATH (dev: install NDI Tools from ndi.video)
  */
 
+// Precompute Gamma 2.2 LUT for Color Correction
+const gammaLUT = new Uint8Array(256);
+const invGamma = 1 / 2.2;
+for (let i = 0; i < 256; i++) {
+  gammaLUT[i] = Math.round(Math.pow(i / 255, invGamma) * 255);
+}
+
 let grandiose;
 let grandioseError = null;
 
@@ -72,6 +79,13 @@ class NdiSender {
         console.error(`[NdiSender ${this._index}] DROP FRAME: Buffer size mismatch! Expected ${expectedBytes} for ${width}x${height}, got ${bgraBuffer.byteLength}.`);
       }
       return;
+    }
+
+    // Apply exact Gamma Correction 2.2 LUT to BGRA bytes sequentially
+    for (let i = 0; i < expectedBytes; i += 4) {
+      bgraBuffer[i]     = gammaLUT[bgraBuffer[i]];       // Blue
+      bgraBuffer[i + 1] = gammaLUT[bgraBuffer[i + 1]]; // Green
+      bgraBuffer[i + 2] = gammaLUT[bgraBuffer[i + 2]]; // Red
     }
 
     // Count every paint event regardless of NDI outcome

@@ -204,11 +204,11 @@ function startAllStreams(sources) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const stats = buildStats();
 
-    // Only capture previews every 2 seconds to reduce memory pressure
+    // Only capture previews every 1 second to match stats interval and prevent UI blinking
     const now = Date.now();
     let previews = [null, null];
     
-    if (now - lastPreviewCapture >= 2000) {
+    if (now - lastPreviewCapture >= 1000) {
       try {
         previews = await Promise.all(
           hiddenWindows.map(async (win) => {
