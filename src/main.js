@@ -77,6 +77,7 @@ function createHiddenWindow(index, url) {
   const win = new BrowserWindow({
     width: 1920,
     height: 1080,
+    enableLargerThanScreen: true, // MUST be true or cheap laptops clamp to 1366x768
     show: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -143,11 +144,45 @@ function startAllStreams(sources) {
         // NOW register paint listener AFTER page loads
         win.webContents.on("paint", (_event, _dirty, image) => {
           if (!frameLogged) {
-            console.log(`[paint] First frame received for source ${i}`);
+            console.log(`[paint] First frame received for source ${i}.`);
             frameLogged = true;
           }
-          const frameData = image.getBitmap(); // BGRA raw buffer
-          sender.sendFrame(frameData, 1920, 1080);
+
+          try {
+            // IMPORTANT: Wrap frame processing in try-catch
+            if (!image) {
+              console.warn(`[paint] Received null image for source ${i}`);
+              return;
+            }
+
+            const frameData = image.getBitmap();
+            if (!frameData) {
+              console.warn(`[paint] Failed to get bitmap for source ${i}`);
+              return;
+            }
+
+            const size = image.getSize(); // { width, height } logical size
+
+            let physicalWidth = size.width;
+            let physicalHeight = size.height;
+
+            // If the buffer byteLength doesn't match logical size (e.g. DPI scaling or OS clamping)
+            const expectedBufferLength = physicalWidth * physicalHeight * 4;
+            if (expectedBufferLength !== frameData.byteLength) {
+              const aspectRatio = size.width / size.height;
+              physicalHeight = Math.round(Math.sqrt((frameData.byteLength / 4) / aspectRatio));
+              physicalWidth = Math.round(physicalHeight * aspectRatio);
+            }
+
+            // Send frame with error handling
+            sender.sendFrame(frameData, physicalWidth, physicalHeight);
+          } catch (err) {
+            // Log frame processing errors (throttled to avoid spam)
+            if (!win._lastFrameError || Date.now() - win._lastFrameError > 5000) {
+              console.error(`[paint] Frame processing error for source ${i}:`, err.message);
+              win._lastFrameError = Date.now();
+            }
+          }
         });
         
         console.log(`[startAllStreams] Paint listener registered for source ${i}`);
@@ -164,24 +199,47 @@ function startAllStreams(sources) {
   store.set("sources", sources);
 
   // Push live stats + preview thumbnails every second
+  let lastPreviewCapture = 0;
   statsInterval = setInterval(async () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const stats = buildStats();
 
-    // Capture a 480x270 thumbnail from each active hidden window
-    const previews = await Promise.all(
-      hiddenWindows.map(async (win) => {
-        if (!win || win.isDestroyed()) return null;
-        try {
-          const img = await win.webContents.capturePage();
-          return img.resize({ width: 480 }).toDataURL();
-        } catch {
-          return null;
-        }
-      }),
-    );
+    // Only capture previews every 2 seconds to reduce memory pressure
+    const now = Date.now();
+    let previews = [null, null];
+    
+    if (now - lastPreviewCapture >= 2000) {
+      try {
+        previews = await Promise.all(
+          hiddenWindows.map(async (win) => {
+            if (!win || win.isDestroyed()) return null;
+            try {
+              const img = await win.webContents.capturePage();
+              if (!img) return null;
+              
+              // Resize and convert to DataURL
+              const resized = img.resize({ width: 480 });
+              const dataUrl = resized.toDataURL();
+              
+              // IMPORTANT: Explicitly clean up image resources
+              return dataUrl;
+            } catch (err) {
+              console.warn('[statsInterval] Failed to capture preview:', err.message);
+              return null;
+            }
+          }),
+        );
+        lastPreviewCapture = now;
+      } catch (err) {
+        console.error('[statsInterval] Preview capture error:', err.message);
+      }
+    }
 
-    mainWindow.webContents.send("stats-update", { ...stats, previews });
+    try {
+      mainWindow.webContents.send("stats-update", { ...stats, previews });
+    } catch (err) {
+      console.error('[statsInterval] Failed to send stats:', err.message);
+    }
   }, 1000);
 }
 
