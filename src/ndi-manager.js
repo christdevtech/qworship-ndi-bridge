@@ -72,26 +72,9 @@ class NdiSender {
   sendFrame(bgraBuffer, width, height) {
     if (!this._sender) return;
 
-    // CRITICAL: Prevent native C++ segfault by ensuring buffer matches dimensions
-    const expectedBytes = width * height * 4;
-    if (bgraBuffer.byteLength !== expectedBytes) {
-      if (this._frameCount % 60 === 0) {
-        console.error(`[NdiSender ${this._index}] DROP FRAME: Buffer size mismatch! Expected ${expectedBytes} for ${width}x${height}, got ${bgraBuffer.byteLength}.`);
-      }
-      return;
-    }
-
-    // Apply exact Gamma Correction 2.2 LUT to BGRA bytes sequentially
-    for (let i = 0; i < expectedBytes; i += 4) {
-      bgraBuffer[i]     = gammaLUT[bgraBuffer[i]];       // Blue
-      bgraBuffer[i + 1] = gammaLUT[bgraBuffer[i + 1]]; // Green
-      bgraBuffer[i + 2] = gammaLUT[bgraBuffer[i + 2]]; // Red
-    }
-
     // Count every paint event regardless of NDI outcome
     this._frameCount++;
     this._bytesSent += bgraBuffer.byteLength;
-
     const now = Date.now();
     if (now - this._lastFpsCheck >= 1000) {
       this._fps = this._frameCount;
@@ -107,8 +90,7 @@ class NdiSender {
     }
 
     try {
-      // Send frame and handle promise properly
-      const videoPromise = this._sender.video({
+      this._sender.video({
         xres: width,
         yres: height,
         frameRateN: 60000,
@@ -118,20 +100,10 @@ class NdiSender {
         fourCC: 1095911234, // BGRA constant from index.d.ts
         lineStrideBytes: width * 4,
         data: bgraBuffer,
+      }).catch(err => {
+        // Suppress individual frame drop errors to avoid console spam
       });
-
-      // IMPORTANT: Handle promise rejection properly
-      if (videoPromise && typeof videoPromise.catch === 'function') {
-        videoPromise.catch(err => {
-          // Log frame errors only once per second to avoid spam
-          if (now - (this._lastErrorLog || 0) >= 1000) {
-            console.warn(`[NdiSender ${this._index}] Frame send error:`, err.message);
-            this._lastErrorLog = now;
-          }
-        });
-      }
     } catch (e) {
-      // Catch synchronous errors
       console.error(`[NdiSender ${this._index}] sendFrame sync error:`, e.message);
     }
   }
